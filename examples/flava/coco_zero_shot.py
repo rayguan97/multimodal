@@ -16,6 +16,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 from torchmultimodal.models.flava.model import flava_model
 from torchvision.datasets import CocoCaptions
+from tqdm import tqdm 
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
@@ -49,7 +50,7 @@ def setup_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_root", help="Path to data root directory")
     parser.add_argument("--annotations", help="Path to annotation file")
-    parser.add_argument("--batch_size", default=16)
+    parser.add_argument("--batch_size", type=int, default=16)
 
     args = parser.parse_args()
     return args
@@ -69,8 +70,8 @@ def main():
     image_embeds = []
     dataloader = DataLoader(dataset, batch_size=args.batch_size, collate_fn=collator)
 
-    for batch_idx, batch in enumerate(dataloader):
-        logger.info(f"Batch id {batch_idx}")
+    for batch_idx, batch in enumerate(tqdm(dataloader)):
+        # logger.info(f"Batch id {batch_idx}")
         image, text = batch
         _, text_emb = flava.encode_text(text.to(device), projection=True)
         _, image_emb = flava.encode_image(image.to(device), projection=True)
