@@ -58,7 +58,7 @@ venv.bak/
 instance/
 .webasG-cache
 
-./datasets
+DATASETS/
 
 # Installer logs
 pip-log.txt
