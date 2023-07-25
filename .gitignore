@@ -56,7 +56,9 @@ venv.bak/
 
 # Flask stuff
 instance/
-.webassets-cache
+.webasG-cache
+
+./datasets
 
 # Installer logs
 pip-log.txt

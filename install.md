@@ -3,3 +3,11 @@ cd multimodal
 pip install -e .
 cd examples
 pip install -r flava/requirements.txt
+
+huggingface-cli login
+
+
+
+data:
+SUN RGB-D: https://rgbd.cs.princeton.edu/
+
