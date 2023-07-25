@@ -3,6 +3,7 @@ cd multimodal
 pip install -e .
 cd examples
 pip install -r flava/requirements.txt
+pip install mat4py IPython
 
 huggingface-cli login
 
