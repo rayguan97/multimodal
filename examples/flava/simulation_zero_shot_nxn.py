@@ -13,13 +13,64 @@ from flava.data.transforms import (
     default_text_transform,
 )
 from torch import nn
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from torchmultimodal.models.flava.model import flava_model
 from torchvision.datasets import CocoCaptions
 from tqdm import tqdm 
+import os 
+from torchvision import transforms, utils
+import pandas as pd
+import json
+from skimage import io, transform
+from PIL import Image
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
+
+
+class SimDataset(Dataset):
+    
+    def __init__(self, root_dir, anno_name, transform=None):
+        """
+        Arguments:
+            csv_file (string): Path to the csv file with annotations.
+            root_dir (string): Directory with all the images.
+            transform (callable, optional): Optional transform to be applied
+                on a sample.
+        """
+        self.root_dir = root_dir
+        self.anno_name = anno_name
+        with open(os.path.join(root_dir, anno_name), "r") as f:
+            self.anno = json.load(f)
+        
+        self.img_lst = self.anno["image_lst"]
+        self.img_anno = self.anno["image_anno"]
+        self.id_dict = self.anno["id_to_obj"]
+        if "id_to_scene" in self.anno:
+            self.id_dict = {**self.anno["id_to_obj"], **self.anno["id_to_scene"]}
+            
+        
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.img_lst)
+
+    def __getitem__(self, idx):
+
+
+        img_name = os.path.join(self.root_dir,
+                                self.img_lst[idx])
+        
+        
+        # image = io.imread(img_name)
+        image = Image.open(img_name)
+        text = ",".join([self.id_dict[str(i)] for i in self.img_anno[idx]])
+        
+        if self.transform:
+            image, text = self.transform(image, text)
+
+        return image, text
+
 
 
 def compute_recall(similarity_scores: torch.Tensor, k: int = 5):
@@ -38,6 +89,14 @@ def transform(image, target):
     transformed_text = default_text_transform()(target[0])
     return transformed_image, transformed_text
 
+def transform2(image, target):
+    _, image_transform = default_image_pretraining_transforms()
+    transformed_image = image_transform(image)
+    # Take the first caption for now
+    transformed_text = default_text_transform()(target)
+    # from IPython import embed;embed()
+
+    return transformed_image, transformed_text
 
 def collator(batch):
     texts = []
@@ -48,8 +107,11 @@ def collator(batch):
 
 def setup_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_root", help="Path to data root directory", default="/scratch0/rayguan/object_localization/GLIP/DATASET/coco/train2014")
-    parser.add_argument("--annotations", help="Path to annotation file", default="/scratch0/rayguan/object_localization/GLIP/DATASET/coco/annotations/captions_train2014.json")
+    # parser.add_argument("--data_root", help="Path to data root directory", default="/scratch0/rayguan/object_localization/GLIP/DATASET/coco/train2014")
+    # parser.add_argument("--annotations", help="Path to annotation file", default="/scratch0/rayguan/object_localization/GLIP/DATASET/coco/annotations/captions_train2014.json")
+
+    parser.add_argument("--data_root", help="Path to data root directory", default="/home/rayguan/multimodal/DATASETS/simulation")
+    parser.add_argument("--annotations", help="Path to annotation file", default="anno.json")
     parser.add_argument("--batch_size", type=int, default=4)
     # parser.add_argument("--batch_size", type=int, default=16)
 
@@ -59,9 +121,12 @@ def setup_args():
 
 def main():
     args = setup_args()
-    dataset = CocoCaptions(
-        root=args.data_root, annFile=args.annotations, transforms=transform
-    )
+    # dataset = CocoCaptions(
+    #     root=args.data_root, annFile=args.annotations, transforms=transform
+    # )
+    
+    dataset = SimDataset(root_dir=args.data_root, anno_name=args.annotations, transform=transform2)
+
     flava = flava_model(pretrained=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info(f"Using device: {device}")
@@ -72,6 +137,8 @@ def main():
     dataloader = DataLoader(dataset, batch_size=args.batch_size, collate_fn=collator)
 
     for batch_idx, batch in enumerate(tqdm(dataloader)):
+        
+        # from IPython import embed;embed()
         # logger.info(f"Batch id {batch_idx}")
         image, text = batch
         _, text_emb = flava.encode_text(text.to(device), projection=True)
@@ -81,6 +148,9 @@ def main():
 
     image_embeds = torch.cat(image_embeds, 0)
     text_embeds = torch.cat(text_embeds, 0)
+
+    # from IPython import embed;embed()
+
 
     image_embeds = nn.functional.normalize(image_embeds, dim=-1)
     text_embeds = nn.functional.normalize(text_embeds, dim=-1)

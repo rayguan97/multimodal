@@ -64,6 +64,8 @@ for i, (img_dir, box_lst) in enumerate(zip(image_dir_lst, image_box_lst)):
 
     ids.append(scene_to_id[scene])
 
+    ids.sort()
+
     image_anno.append(ids)
 
 out_dict = {
