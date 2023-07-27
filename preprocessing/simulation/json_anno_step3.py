@@ -33,6 +33,8 @@ for i in img_lst:
         if i in img_label[k]:
             ids.append(int(k.split("_")[1]))
     
+    ids.sort()
+    
     image_anno.append(ids)
 
 
@@ -47,3 +49,12 @@ out_dict = {
 out_f = open(out_file, "w")
 
 json.dump(out_dict, out_f, indent=4)
+
+
+# structure
+
+# {
+#     "id_to_obj": {id: object-name}
+#     "image_lst": [img_path]
+#     "image_anno": [ ids ]
+# }

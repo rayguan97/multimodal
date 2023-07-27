@@ -3,7 +3,7 @@ cd multimodal
 pip install -e .
 cd examples
 pip install -r flava/requirements.txt
-pip install mat4py IPython
+pip install mat4py IPython scikit-image
 
 huggingface-cli login
 

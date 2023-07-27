@@ -16,10 +16,11 @@ print(os.listdir(anno_folder))
 anno_raw = {}
 
 for d in os.listdir(anno_folder):
-    c, i = d.split("_")
-    assert obj_lst[int(i)] == c
+    if "_" in d and ".pth" not in d:
+        c, i = d.split("_")
+        assert obj_lst[int(i)] == c
         
-    anno_raw[d] = os.listdir(os.path.join(anno_folder, d))
+        anno_raw[d] = os.listdir(os.path.join(anno_folder, d))
 
 
 out_f = open(out_file, "w")
