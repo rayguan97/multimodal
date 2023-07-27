@@ -179,3 +179,5 @@ cover/
 
 # VSCode
 .vscode/
+
+lightning_logs/
