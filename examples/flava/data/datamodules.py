@@ -21,9 +21,12 @@ from transformers import (
 )
 from transformers.data.data_collator import torch_default_data_collator
 
+from .sunrgbd import SUNRGBD
+
 from .transforms import (
     default_image_pretraining_transforms,
     default_text_transform,
+    default2_text_transform,
     default_torchvision_transforms,
     encode_text_batch,
     pad_batch,
@@ -44,6 +47,7 @@ class DataCollatorForWholeWordMaskRetainingBatch(DataCollatorForWholeWordMask):
     def torch_call(
         self, examples: List[Union[List[int], Any, Dict[str, Any]]]
     ) -> Dict[str, Any]:
+        # from IPython import embed;embed()
         masked_batch = super().torch_call(examples)
         examples = torch_default_data_collator(examples)
         examples["input_ids"] = masked_batch["input_ids"]
@@ -431,6 +435,196 @@ class VLDataModule(LightningDataModule):
         )
         return batch
 
+
+class LocalVLDataModule(LightningDataModule):
+    def __init__(
+        self,
+        train_infos,
+        val_infos,
+        text_transform: Optional[Callable] = None,
+        image_transforms: Optional[Tuple[Callable, Callable]] = None,
+        mlm_probablity: float = 0.15,
+        batch_size: int = 32,
+        num_workers: int = 4,
+        finetuning: bool = False,
+        ignore_index: int = -1,
+        itm_probability: float = 0,
+        allow_uneven_batches: bool = False,
+        fetch_num_threads: int = 4,
+        fetch_retries: int = 0,
+        fetch_sleep_timer: int = 0,
+        fetch_timeout: Optional[float] = None,
+        fetch_batch_size: int = 50,
+        **kwargs,
+    ):
+        super().__init__()
+
+        self.train_dataset_infos = train_infos
+        self.val_dataset_infos = val_infos
+        if self.val_dataset_infos is None:
+            self.val_dataset_infos = train_infos
+        if image_transforms is None:
+            if not finetuning:
+                image_transforms = default_image_pretraining_transforms()
+            else:
+                image_transforms = default_torchvision_transforms(use_dict=True)
+
+        self.train_image_transform, self.test_image_transform = image_transforms
+        self.text_transform = text_transform
+        self.mlm_probability = mlm_probablity
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+        self.ignore_index = ignore_index
+        self.itm_probability = itm_probability
+        self.allow_uneven_batches = allow_uneven_batches
+        self.fetch_num_threads = fetch_num_threads
+        self.fetch_retries = fetch_retries
+        self.fetch_sleep_timer = fetch_sleep_timer
+        self.fetch_timeout = fetch_timeout
+        self.fetch_batch_size = fetch_batch_size
+
+    def setup(self, stage=None):
+        if self.text_transform is None:
+            # TODO Update to use whole word mask vocab
+            text_tokenizer = BertTokenizer.from_pretrained(
+                TEXT_WHOLE_WORD_MASK_TOKENIZER
+            )
+            self.text_transform = default2_text_transform(
+                text_tokenizer, max_text_length=VL_MAX_LENGTH_DEFAULT
+            )
+        self.text_tokenizer = self.text_transform.keywords["tokenizer"]
+        train_vl_transform = VLTransform(
+            self.train_image_transform, self.text_transform
+        )
+        val_vl_transform = VLTransform(self.test_image_transform, self.text_transform)
+
+        # train_dataset = build_datasets_from_info(
+        #     self.train_dataset_infos, split="train"
+        # )
+        # train_dataset = train_dataset.map(
+        #     fetch_images,
+        #     batched=True,
+        #     batch_size=self.fetch_batch_size,
+        #     fn_kwargs={
+        #         "num_threads": self.fetch_num_threads,
+        #         "timeout": self.fetch_timeout,
+        #         "retries": self.fetch_retries,
+        #         "sleep_timer": self.fetch_sleep_timer,
+        #     },
+        # )
+        # train_dataset = train_dataset.filter(
+        #     lambda example: example["image"] is not None
+        # )
+        # self.train_dataset = train_dataset
+
+        # from IPython import embed;embed()
+
+        self.train_dataset = SUNRGBD(root_dir=self.train_dataset_infos.root_dir, anno_name=self.train_dataset_infos.anno)
+    
+        self.train_dataset.set_transform(transform=partial(
+                                            train_vl_transform,
+                                            dataset=self.train_dataset,
+                                            itm_probability=self.itm_probability,
+                                        ))
+
+        # self.train_dataset.set_transform(
+        #     partial(
+        #         train_vl_transform,
+        #         dataset=train_dataset.filter(lambda example: True),
+        #         itm_probability=self.itm_probability,
+        #     )
+        # )
+
+        # val_dataset = build_datasets_from_info(
+        #     self.val_dataset_infos, split="validation"
+        # )
+
+        # val_dataset = val_dataset.map(
+        #     fetch_images,
+        #     batched=True,
+        #     batch_size=self.fetch_batch_size,
+        #     fn_kwargs={
+        #         "num_threads": self.fetch_num_threads,
+        #         "timeout": self.fetch_timeout,
+        #         "retries": self.fetch_retries,
+        #         "sleep_timer": self.fetch_sleep_timer,
+        #     },
+        # )
+        # val_dataset = val_dataset.filter(lambda example: example["image"] is not None)
+        # self.val_dataset = val_dataset
+
+        self.val_dataset = SUNRGBD(root_dir=self.val_dataset_infos.root_dir, anno_name=self.val_dataset_infos.anno)
+        
+        self.val_dataset.set_transform(transform=partial(
+                                            val_vl_transform,
+                                            dataset=self.val_dataset,
+                                            itm_probability=self.itm_probability,
+                                        ))
+
+
+
+        # self.val_dataset.set_transform(
+        #     partial(
+        #         val_vl_transform,
+        #         dataset=self.val_dataset.filter(
+        #             lambda example: True
+        #         ),  # Pass a copy to transform
+        #         itm_probability=self.itm_probability,
+        #     )
+        # )
+
+    def train_dataloader(self):
+        return torch.utils.data.DataLoader(
+            self.train_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            sampler=None,
+            shuffle=True,
+            collate_fn=self._build_collator(),
+            # uneven batches can cause distributed issues,
+            # drop last batch to prevent those.
+            drop_last=True,
+        )
+
+    def val_dataloader(self):
+        return torch.utils.data.DataLoader(
+            self.val_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            sampler=None,
+            shuffle=False,
+            collate_fn=self._build_collator(),
+            # uneven batches can cause distributed issues,
+            # drop last batch to prevent those.
+            drop_last=True,
+        )
+
+    def _build_collator(self):
+        return DataCollatorForWholeWordMaskRetainingBatch(
+            self.text_tokenizer, mlm_probability=self.mlm_probability
+        )
+
+    def on_before_batch_transfer(self, batch, *args):
+        batch.pop("token_type_ids", None)
+        mask = batch.pop("attention_mask", None)
+        if (
+            mask is not None
+            and mask.size(0) < self.batch_size
+            and not self.allow_uneven_batches
+        ):
+            batch = pad_batch(batch, self.batch_size)
+        return batch
+
+    def on_after_batch_transfer(self, batch, *args):
+        text_masked = batch.pop("input_ids")
+        mlm_labels = batch.pop("labels", None)
+        mlm_labels[mlm_labels == -100] = self.ignore_index
+        text = text_masked.detach().clone()
+        text[mlm_labels != -1] = mlm_labels[mlm_labels != -1]
+        batch.update(
+            {"mlm_labels": mlm_labels, "text": text, "text_masked": text_masked}
+        )
+        return batch
 
 class TorchVisionDataModule(LightningDataModule):
     def __init__(

@@ -6,7 +6,7 @@
 
 from common.data import MultiDataModule
 from flava.callbacks.multimodal_eval import MultimodalEvalCallback
-from flava.data import ImageDataModule, MLMDataModule, VLDataModule
+from flava.data import ImageDataModule, MLMDataModule, VLDataModule, LocalVLDataModule, SUNRGBD
 from flava.definitions import FLAVAArguments
 from flava.model import FLAVAPreTrainingLightningModule
 from flava.utils import build_config, build_datamodule_kwargs
@@ -41,7 +41,17 @@ def main():
         )
         datamodules.append(vl_datamodule)
 
+    if "sunrgbd" in config.datasets.selected:
+        args_dict = build_datamodule_kwargs(config.datasets.sunrgbd.datainfo, config.training)
+        args_dict["train_infos"] = config.datasets.sunrgbd.datadir
+        args_dict["val_infos"] = None
+        sunrgbd_datamodule = LocalVLDataModule(**args_dict)
+        datamodules.append(sunrgbd_datamodule)
+
     datamodule = MultiDataModule(datamodules)
+
+    # from IPython import embed;embed()
+    
 
     datamodule.setup("fit")
     model = FLAVAPreTrainingLightningModule(

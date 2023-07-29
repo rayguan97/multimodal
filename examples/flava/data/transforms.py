@@ -89,6 +89,25 @@ def default_text_transform(
 
     return text_transform
 
+def default2_text_transform(
+    text_tokenizer: Optional[Callable] = None,
+    max_text_length: int = TEXT_MAX_LENGTH_DEFAULT,
+    **kwargs: Any,
+):
+    if text_tokenizer is None:
+        text_tokenizer = BertTokenizer.from_pretrained(TEXT_DEFAULT_TOKENIZER)
+
+    text_transform = partial(
+        encode_text,
+        tokenizer=text_tokenizer,
+        padding="max_length",
+        max_length=max_text_length,
+        truncation=True,
+        # return_tensors="pt",
+        return_special_tokens_mask=True,
+    )
+
+    return text_transform
 
 def default_vl_text_transform(
     text_tokenizer: Optional[Callable] = None,
@@ -129,3 +148,4 @@ class VLTransform:
         output.update(self.image_transform(image))
         output.update(self.text_transform(text))
         return output
+

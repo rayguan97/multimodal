@@ -52,13 +52,25 @@ class TrainingSingleDatasetInfo:
     allow_uneven_batches: bool = False
     datamodule_extra_kwargs: Dict[str, Any] = field(default_factory=dict)
 
+@dataclass
+class DataPath:
+    root_dir: Optional[str] = None
+    anno: Optional[str] = None
+
+
+@dataclass
+class CustomDatasetInfo:
+    datadir: Optional[DataPath] = None
+    datainfo: Optional[TrainingSingleDatasetInfo] = None
+
 
 @dataclass
 class TrainingDatasetsInfo:
-    selected: List[str] = field(default_factory=lambda: ["image", "text", "vl"])
+    selected: List[str] = field(default_factory=lambda: ["image", "text", "vl", "sunrgbd"])
     image: Optional[TrainingSingleDatasetInfo] = None
     text: Optional[TrainingSingleDatasetInfo] = None
     vl: Optional[TrainingSingleDatasetInfo] = None
+    sunrgbd: Optional[CustomDatasetInfo] = None
     num_classes: int = MISSING
 
 
