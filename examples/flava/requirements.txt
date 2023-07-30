@@ -7,3 +7,4 @@ omegaconf==2.1.2
 hydra-core==1.1.2
 transformers==4.30.0
 pycocotools
+torchmetrics==0.9.3
