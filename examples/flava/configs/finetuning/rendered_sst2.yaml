@@ -9,7 +9,7 @@ training:
     num_sanity_val_steps: 0
     strategy: ddp
   lightning_checkpoint:
-    dirpath: "."
+    dirpath: "./finetune_sst2/exp1"
     filename: flava-{epoch:02d}-{step}
     save_last: true
     every_n_train_steps: 1000

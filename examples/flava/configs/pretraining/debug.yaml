@@ -14,6 +14,7 @@ training:
     every_n_train_steps: 1000
     save_on_train_epoch_end: true
     verbose: true
+    monitor: train/losses/global_contrastive_loss
   lightning_load_from_checkpoint: null
   seed: -1
   batch_size: 16
