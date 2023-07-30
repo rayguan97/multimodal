@@ -140,7 +140,7 @@ class FLAVAClassificationLightningModule(LightningModule):
         self.warmup_steps = warmup_steps
         self.max_steps = max_steps
         self.adam_betas = adam_betas
-        self.metrics = Accuracy("multiclass")
+        self.metrics = Accuracy("binary")
 
     def training_step(self, batch, batch_idx):
         output, accuracy = self._step(batch, batch_idx)
