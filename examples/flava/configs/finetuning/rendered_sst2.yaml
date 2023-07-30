@@ -5,7 +5,7 @@ training:
   lightning:
     max_steps: 20935
     gpus: -1
-    val_check_interval: 100
+    val_check_interval: 50
     num_sanity_val_steps: 0
     strategy: ddp
   lightning_checkpoint:
