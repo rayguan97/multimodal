@@ -67,6 +67,7 @@ datasets:
     datadir:
       _target_: flava.definitions.DataPath
       root_dir: "/home/rayguan/multimodal/DATASETS/SUNRGBD"
+      # root_dir: "/fs/nexus-scratch/rayguan/multimodal/DATASETS/SUNRGBD"
       anno: "anno.json"
     datainfo:
       _target_: flava.definitions.TrainingSingleDatasetInfo
