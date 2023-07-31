@@ -448,7 +448,7 @@ class LocalVLDataModule(LightningDataModule):
         num_workers: int = 4,
         finetuning: bool = False,
         ignore_index: int = -1,
-        itm_probability: float = 0,
+        itm_probability: float = 0.1,
         allow_uneven_batches: bool = False,
         fetch_num_threads: int = 4,
         fetch_retries: int = 0,
@@ -560,7 +560,6 @@ class LocalVLDataModule(LightningDataModule):
                                             dataset=self.val_dataset,
                                             itm_probability=self.itm_probability,
                                         ))
-
 
 
         # self.val_dataset.set_transform(

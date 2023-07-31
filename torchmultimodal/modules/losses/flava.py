@@ -123,6 +123,7 @@ class ITMLoss(nn.Module):
         hidden_states: Tensor,
         labels: Tensor,
     ) -> ITMLossOutput:
+                
         if self.training:
             assert_labels_are_present(labels, "itm labels")
 

@@ -93,7 +93,8 @@ class FLAVAPreTrainingLightningModule(LightningModule):
             required_embedding = "text"
         else:
             raise RuntimeError("Batch needs to have either or both 'image' and 'text'.")
-
+        
+        
         output = self.model(
             image=batch.get("image", None),
             image_for_codebook=batch.get("image_for_codebook", None),

@@ -18,7 +18,7 @@ training:
     monitor: train/losses/global_contrastive_loss
   lightning_load_from_checkpoint: null
   seed: -1
-  batch_size: 16
+  batch_size: 4
   num_workers: 4
   learning_rate: 2e-4
   adam_eps: 1e-8
@@ -66,8 +66,8 @@ datasets:
     _target_: flava.definitions.CustomDatasetInfo
     datadir:
       _target_: flava.definitions.DataPath
-      # root_dir: "/home/rayguan/multimodal/DATASETS/SUNRGBD"
-      root_dir: "/fs/nexus-scratch/rayguan/multimodal/DATASETS/SUNRGBD"
+      root_dir: "/home/rayguan/multimodal/DATASETS/SUNRGBD"
+      # root_dir: "/fs/nexus-scratch/rayguan/multimodal/DATASETS/SUNRGBD"
       anno: "anno.json"
     datainfo:
       _target_: flava.definitions.TrainingSingleDatasetInfo
