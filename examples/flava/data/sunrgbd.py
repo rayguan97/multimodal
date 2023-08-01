@@ -72,6 +72,15 @@ class SUNRGBD(Dataset):
             out_dict = self.transform(out_dict)
 
         return out_dict
+    
+    def get_text(self, idx):
+        
+        # image = io.imread(img_name)
+        # text = ",".join([self.id_dict[str(i)] for i in self.img_anno[idx]])
+        text = self.id_dict[str(self.img_anno[idx])]
+        out_dict = {"text": text}
+        return out_dict
+ 
 
     def set_transform(self, transform):
         self.transform = transform

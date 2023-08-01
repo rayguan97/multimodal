@@ -22,7 +22,7 @@ from transformers import (
 from transformers.data.data_collator import torch_default_data_collator
 
 from .sunrgbd import SUNRGBD
-
+import datasets
 from .transforms import (
     default_image_pretraining_transforms,
     default_text_transform,
@@ -34,9 +34,14 @@ from .transforms import (
     TEXT_WHOLE_WORD_MASK_TOKENIZER,
     VL_MAX_LENGTH_DEFAULT,
     VLTransform,
+    LocalVLTransform,
 )
 from .utils import build_datasets_from_info, fetch_images
 
+
+def gen(torch_data):
+    for idx in len(torch_data):
+         torch_data[idx]
 
 def transform_image(transform, sample):
     sample.update(transform(sample["image"]))
@@ -332,6 +337,10 @@ class VLDataModule(LightningDataModule):
         train_dataset = build_datasets_from_info(
             self.train_dataset_infos, split="train"
         )
+        
+        # from IPython import embed;embed()
+
+        
         train_dataset = train_dataset.map(
             fetch_images,
             batched=True,
@@ -381,6 +390,7 @@ class VLDataModule(LightningDataModule):
                 itm_probability=self.itm_probability,
             )
         )
+        # from IPython import embed;embed()
 
     def train_dataloader(self):
         return torch.utils.data.DataLoader(
@@ -493,10 +503,10 @@ class LocalVLDataModule(LightningDataModule):
                 text_tokenizer, max_text_length=VL_MAX_LENGTH_DEFAULT
             )
         self.text_tokenizer = self.text_transform.keywords["tokenizer"]
-        train_vl_transform = VLTransform(
+        train_vl_transform = LocalVLTransform(
             self.train_image_transform, self.text_transform
         )
-        val_vl_transform = VLTransform(self.test_image_transform, self.text_transform)
+        val_vl_transform = LocalVLTransform(self.test_image_transform, self.text_transform)
 
         # train_dataset = build_datasets_from_info(
         #     self.train_dataset_infos, split="train"
@@ -520,7 +530,8 @@ class LocalVLDataModule(LightningDataModule):
         # from IPython import embed;embed()
 
         self.train_dataset = SUNRGBD(root_dir=self.train_dataset_infos.root_dir, anno_name=self.train_dataset_infos.anno)
-    
+        # self.train_dataset = datasets.Dataset.from_list(self.train_dataset)
+
         self.train_dataset.set_transform(transform=partial(
                                             train_vl_transform,
                                             dataset=self.train_dataset,
@@ -554,12 +565,15 @@ class LocalVLDataModule(LightningDataModule):
         # self.val_dataset = val_dataset
 
         self.val_dataset = SUNRGBD(root_dir=self.val_dataset_infos.root_dir, anno_name=self.val_dataset_infos.anno)
+        # self.val_dataset = datasets.Dataset.from_list(self.val_dataset)
         
         self.val_dataset.set_transform(transform=partial(
                                             val_vl_transform,
                                             dataset=self.val_dataset,
                                             itm_probability=self.itm_probability,
                                         ))
+
+        # from IPython import embed;embed()
 
 
         # self.val_dataset.set_transform(

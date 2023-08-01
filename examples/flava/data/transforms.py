@@ -149,3 +149,23 @@ class VLTransform:
         output.update(self.text_transform(text))
         return output
 
+class LocalVLTransform:
+    def __init__(self, image_transform, text_transform):
+        self.image_transform = image_transform
+        self.text_transform = text_transform
+
+    def __call__(self, info, dataset, itm_probability):
+        output = {}
+        text = info["text"]
+        image = info["image"]
+        if itm_probability > 0:
+            output["itm_labels"] = torch.ones((1), dtype=torch.long)[0]
+
+        if random.random() < itm_probability:
+            while text == info["text"]:
+                text = dataset.get_text(random.randint(0, len(dataset) - 1))["text"]
+            output["itm_labels"] = torch.zeros((1), dtype=torch.long)[0]
+
+        output.update(self.image_transform(image))
+        output.update(self.text_transform(text))
+        return output

@@ -416,7 +416,7 @@ class FLAVAPretrainingLoss(nn.Module):
             outputs.mlm_output.loss *= self.mlm_weight
             outputs.losses.mlm_loss = outputs.mlm_output.loss
 
-        if multimodal_masked_sequence is not None and self.itm_loss_weight > 0:
+        if multimodal_masked_sequence is not None and self.itm_loss_weight > 0:            
             if itm_labels is not None:
                 pos_pairs = itm_labels.ne(0)
                 pos_mask = torch.where(
